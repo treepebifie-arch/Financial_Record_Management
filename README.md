@@ -19,9 +19,13 @@ Data Integrity: Implements Decimal128 for financial precision.
 ## Tech Stack
 
 Runtime: Node.js
+
 Framework: Express.js
+
 Database: MongoDB with Mongoose ODM
+
 Authentication: JWT (JSON Web Tokens) 
+
 Validation: Zod
  
  
@@ -46,13 +50,13 @@ This project follows MVC architecture, for easier debugging and maintainability.
 ```
 ## Getting Started
 
-Clone the repository: Bashgit clone https://github.com/your-username/financial-record-mgmt.git
+Clone the repository: ```Bash git clone https://github.com/your-username/financial-record-mgmt.git ```
 
-Install dependencies: Bashnpm install
+Install dependencies: ```Bash npm install ```
 
 Set up your .env file
 
-Run the development server:Bashnpm run dev
+Run the development server: ```Bash npm run dev ```
 
 
 ## Security Implementations
@@ -62,3 +66,9 @@ JWT Protection: All private routes require a Bearer Token.
 Ownership Check: Standard users can only view or search for their own records.
 
 Error Handling: Centralized error-handling middleware for consistent API responses. 
+
+## Url
+
+Postman Documentations: https://documenter.getpostman.com/view/51228830/2sBXiqFpFX
+
+Live url: https://api-zorvyn-fintech.onrender.com
