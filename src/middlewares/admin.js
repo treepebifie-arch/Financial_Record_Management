@@ -14,7 +14,7 @@ const  limitAccess = async (req, res, next) => {
         // Role Authorization Logic
         const allowedRoles = ['admin', 'auditor'];
         if (!allowedRoles.includes(req.user.role)) {
-            return res.status(403).json({ message: "Access denied: Unauthorized role" });
+            return res.status(403).json({ message: "Access denied: User is not authorized" });
         }
 
         next();
@@ -29,7 +29,7 @@ const restrictToAdmin = (req, res, next) => {
     if (req.user.role !== 'admin') {
         return res.status(403).json({ 
             success: false, 
-            message: "Permission denied: Auditors cannot perform this action" 
+            message: "Permission denied: only Admins can perform this action" 
         });
     }
     next();

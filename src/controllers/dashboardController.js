@@ -41,7 +41,10 @@ const searchByFilters = async (req, res, next) => {
 
 const getAllTransactions = async (req, res, next) => {
     try {
-        const transactions = await dashboardServices.fetchAllTransactions(req.query.page);
+        const {id: userId, role} = req.user;
+        const page = parseInt(req.query.page) || 1;
+        const pageSize = 5
+        const transactions = await dashboardServices.fetchAllTransactions(userId, role, page, pageSize);
         apiResponse(res, 200, transactions, "Transactions fetched successfully");
     } catch (error) {
         next(error);
@@ -51,7 +54,8 @@ const getAllTransactions = async (req, res, next) => {
 
 const getRecentTransactions = async (req, res, next) => {
     try {
-        const transactions = await dashboardServices.fetchRecentTransactions();
+        const {id: userId, role} = req.user
+        const transactions = await dashboardServices.fetchRecentTransactions(userId, role);
         apiResponse(res, 200, transactions, "Recent transactions fetched successfully");
     } catch (error) {
         next(error);

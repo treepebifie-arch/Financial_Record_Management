@@ -158,22 +158,80 @@ class dashboardService {
 
     }
 
-    async fetchAllTransactions(page = 1) {
-        const limit = 10;
-        const skip = (page - 1) * limit;
-        return await Record.find()
-            .populate('userId', 'name email')
+    async fetchAllTransactions(userId, role, page, pageSize) {
+
+        const totalCount = await Record.countDocuments({});
+
+        const records = await Record.find({})
             .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(limit);
+            .skip((page - 1) * pageSize)
+            .limit(pageSize)
+            .populate('userId', 'name email')
+            .select('-balanceBefore -balanceAfter');
+            const user = await User.findById(userId)
+        if (!user) {
+            throw new ApiError(404, "User not found");
+        }
+        if (role === 'user') {
+
+            const userRecords = records.filter(record =>
+                record.userId?._id?.toString() === userId?.toString()
+            );
+
+            if (userRecords.length === 0) {
+                throw new ApiError(404, "No record found for the user with the given filters");
+            }
+
+            return {
+                userRecords,
+                
+            };
+        }
+
+
+        return {
+            records,
+            totalCount,
+            totalPages: Math.ceil(totalCount / pageSize),
+            currentPage: page
+        };
     }
 
-    async fetchRecentTransactions() {
-        // Get the last 10 transactions and populate user details
-        return await Record.find()
+    async fetchRecentTransactions(userId, role) {
+
+        const totalCount = await Record.countDocuments({});
+
+        const records = await Record.find({})
             .sort({ createdAt: -1 })
             .limit(10)
             .populate('userId', 'name email')
+            .select('-balanceBefore -balanceAfter');
+
+        const user = await User.findById(userId)
+        if (!user) {
+            throw new ApiError(404, "User not found");
+        }
+        if (role === 'user') {
+
+            const userRecords = records.filter(record =>
+                record.userId?._id?.toString() === userId?.toString()
+            );
+
+            if (userRecords.length === 0) {
+                throw new ApiError(404, "No record found for the user with the given filters");
+            }
+
+            return {
+                userRecords,
+                
+            };
+        }
+
+        return {
+            records,
+            totalCount
+        };
+
     }
 
     async fetchAllUsers(page = 1) {
@@ -206,7 +264,7 @@ class dashboardService {
     }
 
     async changeUserRole(userId) {
-        const user = await User.findByIdAndUpdate(userId);
+        const user = await User.findByIdAndUpdate(userId).select("-password -otp -otpExpiry");
         if (!user) {
             throw new ApiError(404, "User not found");
         };
@@ -217,7 +275,7 @@ class dashboardService {
         }
 
         await user.save();
-        return user.select("-password -otp -otpExpiry");
+        return user;
 
 
 
