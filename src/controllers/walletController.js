@@ -9,7 +9,7 @@ const createWallet = async (req, res, next) => {
 
         const {userId} = req.params
         const walletDetails = await walletServices.createWallet(userId);
-        apiResponse(res, 201, walletDetails, "Wallet created successfully");
+        apiResponse(res, 201, "Wallet created successfully", walletDetails);
     } catch (err) {
         next(err);
     }
@@ -21,13 +21,26 @@ const transferFunds = async (req, res, next) => {
         const {accountNumber, amount} = req.body;
         const transferData = { accountNumber, amount };
         const result = await walletServices.transferFunds(userId, transferData)
-        apiResponse(res, 200, result, `successfully transferred ${amount} to account ${accountNumber}`);
+        apiResponse(res, 200, `successfully transferred ${amount} to account ${accountNumber}`, result);
     } catch (err) {
         next(err);
     }
 }
 
+const makeDeposit = async (req, res, next) => {
+    try {
+        const userId  = req.user.id; 
+        console.log("User ID from token:", userId, );
+        const { amount } = req.body;
+        const result = await walletServices.makeDeposit(userId, req.body);
+        apiResponse(res, 200, `Deposit of ${amount} initiated successfully`, result);
+    } catch (err) {
+        next(err);
+    }
+};
+
 module.exports = {
     createWallet,
-    transferFunds
+    transferFunds,
+    makeDeposit
 };

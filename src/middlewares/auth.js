@@ -11,6 +11,7 @@ const isAuth = async (req, res, next) => {
     try {
         const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
         req.user = decoded.payload;
+        console.log(decoded.payload);
         next();
     } catch (err) {
         console.error('Auth Error:', err);

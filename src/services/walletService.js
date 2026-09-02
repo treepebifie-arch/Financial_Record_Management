@@ -2,16 +2,18 @@ const Wallet = require('../models/walletModel');
 const Record = require('../models/recordModel');
 const ApiError = require('../middlewares/apiError');
 const crypto = require('crypto');
+const axios = require('axios');
+const flw = require('flutterwave-node-v3');
 
 
 class walletService {
     // Generate a unique account number
-        /**
-     * Generates a 10-digit account number starting with a specific prefix
-     * @param {string} prefix - e.g., '20' or '21'
-     * @returns {string} - The full account number
-     */
-    async generateAccountNumber  (prefix = '20'|| '21') {
+    /**
+ * Generates a 10-digit account number starting with a specific prefix
+ * @param {string} prefix - e.g., '20' or '21'
+ * @returns {string} - The full account number
+ */
+    async generateAccountNumber(prefix = '20' || '21') {
         // Generate a random 8-digit number
         // Min: 10,000,000 | Max: 99,999,999
         const randomPart = crypto.randomInt(10000000, 100000000);
@@ -38,7 +40,7 @@ class walletService {
 
     }
 
-    async transferFunds (userId, transferData) {
+    async transferFunds(userId, transferData) {
         const sender = await Wallet.findOne({ userId });
         if (!sender) {
             throw new ApiError(404, "Sender wallet not found");
@@ -57,9 +59,11 @@ class walletService {
         }
         // Perform the transfer atomically
         const debitSender = await Wallet.findOneAndUpdate(
-            { userId,
-            balance: { $gte: transferData.amount } },
-            
+            {
+                userId,
+                balance: { $gte: transferData.amount }
+            },
+
             { $inc: { balance: -transferData.amount } },
             { new: true }
         );
@@ -80,8 +84,8 @@ class walletService {
             throw new ApiError(400, "Failed to credit recipient's wallet");
         }
         // Generate transanction reference and Record the transaction history
-        
-        const txRf = `TRF-${crypto.randomBytes(5).toString('hex').toUpperCase()}`; 
+
+        const txRf = `TRF-${crypto.randomBytes(5).toString('hex').toUpperCase()}`;
 
         //  sender's transaction
         const senderRecord = new Record({
@@ -95,7 +99,7 @@ class walletService {
             balanceBefore: sender.balance,
             balanceAfter: debitSender.balance,
             status: 'successful',
-            txRf: txRf        
+            txRf: txRf
         });
         await senderRecord.save();
 
@@ -111,7 +115,7 @@ class walletService {
             balanceBefore: recipient.balance,
             balanceAfter: creditRecipient.balance,
             status: 'successful',
-            txRf: txRf        
+            txRf: txRf
         });
         await recipientRecord.save();
 
@@ -119,7 +123,89 @@ class walletService {
 
     }
 
+    async makeDeposit(userId, depositData) {
 
+        const wallet = await Wallet.findOne({ userId }).populate('userId', 'name email');
+        if (!wallet) {
+            throw new ApiError(404, "Wallet not found");
+        }
+        const txRf = `TRF-${crypto.randomBytes(5).toString('hex').toUpperCase()}`;
+
+        // Initialize Flutterwave client
+        const flutterwave = new flw(
+            process.env.FLW_PUBLIC_KEY,
+            process.env.FLW_SECRET_KEY
+        );
+        try {
+            const response = await axios.post(
+                'https://api.flutterwave.com/v3/payments',
+                {
+                    tx_ref: txRf,
+                    amount: depositData.amount,
+                    currency: 'NGN',
+                    redirect_url: 'http://localhost:4040/',
+                    customer: {
+                        email: wallet.userId.email,
+                        name: wallet.userId.name,
+                    },
+                    customizations: {
+                        title: 'Make a Deposit',
+                    },
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
+            return response.data.data.link
+        } catch (err) {
+            console.error(err.code);
+            console.error(err.response.data);
+        }
+    }
+
+
+    async flutterWebHook(payload) {
+        const session = await mongoose.startSession();
+
+        try {
+            // verify the webhook signature
+            const secretHash = process.env.FLW_SECRET_HASH;
+            const signature = req.headers["verif-hash"];
+            if (!signature || (signature !== secretHash)) {
+                // This request isn't from Flutterwave; discard
+                throw new ApiError(401, "Unauthorized")
+            }
+
+
+            // Check if the transaction was successful
+            const response = await flw.Transaction.verify({ id: payload.id });
+            if (
+                response.data.status === "successful"
+                && response.data.amount === expectedAmount
+                && response.data.currency === expectedCurrency
+                && response.data.tx_ref === expectedReference) {
+                // Success! Confirm the customer's payment, extract details, and start transaction
+                session.startTransaction();
+                // Automatically lock the record and update status to processing to prevent duplicate processing
+                const record = await Record.findOneAndUpdate({
+                    txRf: payload.tx_ref
+                }
+                )
+
+                
+
+            } else {
+                // Inform the customer their payment was unsuccessful
+                throw new ApiError(400, "Payment verification failed");
+            }
+
+        } catch (err) {
+            throw new ApiError(500, "An error occurred while processing the webhook");
+        }
+    }
 }
 
 module.exports = walletService;
