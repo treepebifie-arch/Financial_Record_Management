@@ -195,13 +195,13 @@ class walletService {
                     txRf: payload.tx_ref,
                     status: 'pending'
                 })
-           
+           const expectedAmount = Number(record.amount.toString());
 
             // Check if the transaction was successful
             const response = await flutterwave.Transaction.verify({ id: payload.id });
             if (
                 response.data.status === "successful"
-                && response.data.amount === record.amount
+                && response.data.amount === expectedAmount
                 && response.data.currency === record.currency
                 && response.data.tx_ref === record.txRf) {
                 // Success! Confirm the customer's payment, extract details, and start transaction
