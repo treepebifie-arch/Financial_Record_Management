@@ -4,7 +4,7 @@ const ApiError = require('../middlewares/apiError');
 const crypto = require('crypto');
 const axios = require('axios');
 const User = require('../models/userModel');
-const flw = require('flutterwave-node-v3');
+const Flutterwave = require('flutterwave-node-v3');
 const mongoose = require('mongoose')
 
 class walletService {
@@ -133,7 +133,7 @@ class walletService {
         const txRf = `TRF-${crypto.randomBytes(5).toString('hex').toUpperCase()}`;
 
         // Initialize Flutterwave client
-        const flutterwave = new flw(
+        const flutterwave = new Flutterwave(
             process.env.FLW_PUBLIC_KEY,
             process.env.FLW_SECRET_KEY
         );
