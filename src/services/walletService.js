@@ -162,6 +162,18 @@ class walletService {
                     },
                 }
             );
+
+            await Record.create({
+                userId: userId,
+                walletId: wallet._id,
+                description: 'Deposit',
+                amount: depositData.amount,
+                currency: 'NGN',
+                type: 'income',
+                category: 'other',
+                status: 'pending',
+                txRf: txRf,
+            });
             return response.data.data.link
         } catch (err) {
             console.error(err.code);
@@ -198,7 +210,7 @@ class walletService {
                 await record.save({ session });
 
                 console.log("Record locked for processing:", record);
-                
+
                 if (!record) {
                     await session.abortTransaction();
                 
