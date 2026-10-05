@@ -175,7 +175,7 @@ class walletService {
            
 
             // Check if the transaction was successful
-            const response = await flw.Transaction.verify({ id: payload.id });
+            const response = await flutterwave.Transaction.verify({ id: payload.id });
             if (
                 response.data.status === "successful"
                 && response.data.amount === expectedAmount
