@@ -175,31 +175,30 @@ class walletService {
 
         try {
             console.log("Received webhook payload:", payload);
+
+            const record = await Record.findOne({
+                    txRf: payload.tx_ref,
+                    status: 'pending'
+                })
            
 
             // Check if the transaction was successful
             const response = await flutterwave.Transaction.verify({ id: payload.id });
             if (
                 response.data.status === "successful"
-                && response.data.amount === expectedAmount
-                && response.data.currency === expectedCurrency
-                && response.data.tx_ref === expectedReference) {
+                && response.data.amount === record.amount
+                && response.data.currency === record.currency
+                && response.data.tx_ref === record.txRf) {
                 // Success! Confirm the customer's payment, extract details, and start transaction
                 session.startTransaction();
+
                 // Automatically lock the record and update status to processing to prevent duplicate processing
-                const record = await Record.findOneAndUpdate({
-                    txRf: payload.tx_ref,
-                    status: 'pending'
-                },
-                {
-                    $set: { 
-                        status: 'processing',
-                        lockedAt: new Date()
-                    },
-                }, 
-                { new: true, session }
-                );
+                record.status = 'processing';
+                record.lockedAt = new Date();
+                await record.save({ session });
+
                 console.log("Record locked for processing:", record);
+                
                 if (!record) {
                     await session.abortTransaction();
                 
