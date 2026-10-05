@@ -7,6 +7,12 @@ const User = require('../models/userModel');
 const Flutterwave = require('flutterwave-node-v3');
 const mongoose = require('mongoose')
 
+// Initialize Flutterwave client
+        const flutterwave = new Flutterwave(
+            process.env.FLW_PUBLIC_KEY,
+            process.env.FLW_SECRET_KEY
+        );
+
 class walletService {
     // Generate a unique account number
     /**
@@ -132,11 +138,7 @@ class walletService {
         }
         const txRf = `TRF-${crypto.randomBytes(5).toString('hex').toUpperCase()}`;
 
-        // Initialize Flutterwave client
-        const flutterwave = new Flutterwave(
-            process.env.FLW_PUBLIC_KEY,
-            process.env.FLW_SECRET_KEY
-        );
+        
         try {
             const response = await axios.post(
                 'https://api.flutterwave.com/v3/payments',
