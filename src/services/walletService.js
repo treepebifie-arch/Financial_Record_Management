@@ -174,6 +174,7 @@ class walletService {
         const session = await mongoose.startSession();
 
         try {
+            console.log("Received webhook payload:", payload);
            
 
             // Check if the transaction was successful
