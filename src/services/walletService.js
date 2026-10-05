@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const axios = require('axios');
 const User = require('../models/userModel');
 const flw = require('flutterwave-node-v3');
-
+const mongoose = require('mongoose')
 
 class walletService {
     // Generate a unique account number
