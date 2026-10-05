@@ -144,7 +144,7 @@ class walletService {
                     tx_ref: txRf,
                     amount: depositData.amount,
                     currency: 'NGN',
-                    redirect_url: 'https://api-zorvyn-fintech.onrender.com',
+                    redirect_url: 'https://api-zorvyn-fintech.onrender.com/',
                     customer: {
                         email: wallet.userId.email,
                         name: wallet.userId.name,
