@@ -20,6 +20,7 @@ connectDB ();
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Logging
 app.use(morgan('combined'));

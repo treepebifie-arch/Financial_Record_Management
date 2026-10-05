@@ -50,7 +50,7 @@ const verifyPayment = async (req, res, next) => {
         }
         const payload = req.body;
 
-        console.log("Received webhook payload:", payload);
+        console.log("request body:", req.body);
         const { result, message } = await walletServices.flutterWebHook(req.body);
         apiResponse(res, 200, message, result);
     } catch (err) {
