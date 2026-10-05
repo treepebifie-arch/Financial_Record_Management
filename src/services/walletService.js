@@ -131,7 +131,7 @@ class walletService {
     }
 
     async makeDeposit(userId, depositData) {
-
+        console.log('request received from controller', depositData);
         const wallet = await Wallet.findOne({ userId }).populate('userId', 'name email');
         if (!wallet) {
             throw new ApiError(404, "Wallet not found");
@@ -163,7 +163,7 @@ class walletService {
                 }
             );
 
-            await Record.create({
+            const newRecord =await Record.create({
                 userId: userId,
                 walletId: wallet._id,
                 description: 'Deposit',
@@ -174,10 +174,13 @@ class walletService {
                 status: 'pending',
                 txRf: txRf,
             });
+
+            await newRecord.save();
+            console.log("Deposit record created:", newRecord);
+
             return response.data.data.link
         } catch (err) {
-            console.error(err.code);
-            console.error(err.response.data);
+            throw err
         }
     }
 

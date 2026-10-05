@@ -35,11 +35,9 @@ const recordSchema = new mongoose.Schema({
     },
     balanceBefore: {
         type: mongoose.Schema.Types.Decimal128,
-        required: true
     },
     balanceAfter: {
         type: mongoose.Schema.Types.Decimal128,
-        required: true
     },
     status: {
         type: String,
