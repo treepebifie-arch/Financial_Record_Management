@@ -49,7 +49,7 @@ const verifyPayment = async (req, res, next) => {
                 throw new ApiError(401, "Unauthorized")
         }
         const payload = req.body;
-        const { result, message } = await walletServices.verifyPayment(req.body);
+        const { result, message } = await walletServices.flutterWebHook(req.body);
         apiResponse(res, 200, message, result);
     } catch (err) {
         next(err);
