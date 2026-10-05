@@ -9,6 +9,7 @@ const isAuth = require('../middlewares/auth.js');
 walletRoute.post("/create-wallet/:userId", walletController.createWallet,); 
 walletRoute.post("/transfer-funds/:userId", validateData(authValidation.transferFundsSchema), walletController.transferFunds);
 walletRoute.post("/make-deposit", isAuth, walletController.makeDeposit);
+walletRoute.post("/flutterwave-webhook", walletController.verifyPayment);
 
 
 

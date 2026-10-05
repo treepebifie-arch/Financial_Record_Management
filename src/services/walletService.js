@@ -3,6 +3,7 @@ const Record = require('../models/recordModel');
 const ApiError = require('../middlewares/apiError');
 const crypto = require('crypto');
 const axios = require('axios');
+const User = require('../models/userModel');
 const flw = require('flutterwave-node-v3');
 
 
@@ -143,7 +144,7 @@ class walletService {
                     tx_ref: txRf,
                     amount: depositData.amount,
                     currency: 'NGN',
-                    redirect_url: 'http://localhost:4040/',
+                    redirect_url: 'https://api-zorvyn-fintech.onrender.com',
                     customer: {
                         email: wallet.userId.email,
                         name: wallet.userId.name,
@@ -171,14 +172,7 @@ class walletService {
         const session = await mongoose.startSession();
 
         try {
-            // verify the webhook signature
-            const secretHash = process.env.FLW_SECRET_HASH;
-            const signature = req.headers["verif-hash"];
-            if (!signature || (signature !== secretHash)) {
-                // This request isn't from Flutterwave; discard
-                throw new ApiError(401, "Unauthorized")
-            }
-
+           
 
             // Check if the transaction was successful
             const response = await flw.Transaction.verify({ id: payload.id });
@@ -191,19 +185,84 @@ class walletService {
                 session.startTransaction();
                 // Automatically lock the record and update status to processing to prevent duplicate processing
                 const record = await Record.findOneAndUpdate({
-                    txRf: payload.tx_ref
-                }
-                )
-
+                    txRf: payload.tx_ref,
+                    status: 'pending'
+                },
+                {
+                    $set: { 
+                        status: 'processing',
+                        lockedAt: new Date()
+                    },
+                }, 
+                { new: true, session }
+                );
+                console.log("Record locked for processing:", record);
+                if (!record) {
+                    await session.abortTransaction();
                 
+                    // check if the transaction has already been processed
+                    const existingRecord = await Record.findOne({ txRf: payload.tx_ref });
+                    if (existingRecord && existingRecord.status !== 'pending') {
+                        console.log("Transaction already processed:", existingRecord.status);
+                        return {
+                            message: "Transaction already processed",
+                            status: existingRecord.status
+                        }
+                    }
+                    throw new ApiError(404, "Record does not exist or is not pending for processing");
+                    
+                }
+                // Proceed with updating the wallet balance and record status
+                const wallet = await Wallet.findOneAndUpdate({_id: record.walletId}, 
+                    { 
+                        $inc: { balance: amount }, 
+                        $set: { updatedAt: new Date() }    
+                    }, 
+                    { new: true, session });
+                
+                if (wallet) {
+                    // find the user associated with the wallet
+                    const user = await User.findById(record.userId).session(session);
+                    console.log ('user found', user)
 
+                    if (user) {
+                        console.log(`wallet balance updated for user ${user.name}, amount: ${wallet.balance} ${wallet.currency}`);
+                    }
+                    // Update the record status to successful
+                    record.status = 'successful',
+                    record.completedAt = new Date();
+                    record.lockedAt = null; // Unlock the record
+
+                    await record.save({ session });
+
+                    // Commit the transaction
+                    await session.commitTransaction();
+                    console.log("Transaction committed successfully");
+
+                    return {
+                        message: "Transaction processed successfully",
+                        status: record.status,
+                        walletBalance: wallet.balance,
+                    }
+                } else {
+                    await session.abortTransaction();
+                    console.error("Wallet not found for the record:", record.walletId);
+                    throw new ApiError(404, "Wallet not found for the record");
+                }
             } else {
-                // Inform the customer their payment was unsuccessful
+                console.error("Payment verification failed:", response.data);
                 throw new ApiError(400, "Payment verification failed");
             }
 
         } catch (err) {
-            throw new ApiError(500, "An error occurred while processing the webhook");
+            // abort the transaction and log the error
+            if (session.inTransaction()) {
+                await session.abortTransaction();
+            }
+            console.error("Error occurred while processing webhook:", err);
+            throw err; // Pass the error to the next middleware for handling
+        } finally {
+            session.endSession();
         }
     }
 }
