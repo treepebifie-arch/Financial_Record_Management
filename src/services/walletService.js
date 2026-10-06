@@ -199,9 +199,11 @@ class walletService {
 
             // Check if the transaction was successful
             const response = await flutterwave.Transaction.verify({ id: payload.id });
+
+            const webhookAmount = Number(response.data.amount);
             if (
                 response.data.status === "successful"
-                && response.data.amount === expectedAmount
+                && webhookAmount === expectedAmount
                 && response.data.currency === record.currency
                 && response.data.tx_ref === record.txRf) {
                 // Success! Confirm the customer's payment, extract details, and start transaction
