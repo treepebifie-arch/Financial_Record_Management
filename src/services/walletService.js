@@ -192,15 +192,33 @@ class walletService {
             console.log("Received webhook payload:", payload);
 
             const record = await Record.findOne({
-                    txRf: payload.tx_ref,
+                    txRf: payload.txRef,
                     status: 'pending'
-                })
-           const expectedAmount = Number(record.amount.toString());
+            })
+
+            if (!record) {
+                    await session.abortTransaction();
+                
+                    // check if the transaction has already been processed
+                    const existingRecord = await Record.findOne({ txRf: payload.txRef });
+                    if (existingRecord && existingRecord.status !== 'pending') {
+                        console.log("Transaction already processed:", existingRecord.status);
+                        return {
+                            message: "Transaction already processed",
+                            status: existingRecord.status
+                        }
+                    }
+                    throw new ApiError(404, "Record does not exist or is not pending for processing");
+                    
+                }          
+           const expectedAmount = record.amount.toString();
 
             // Check if the transaction was successful
             const response = await flutterwave.Transaction.verify({ id: payload.id });
 
-            const webhookAmount = Number(response.data.amount);
+            const webhookAmount = response.data.amount.toString()
+
+            console.log ('webhook amount', response.data.amount, typeof response.data.amount, 'expected amount', expectedAmount, typeof expectedAmount)
             if (
                 response.data.status === "successful"
                 && webhookAmount === expectedAmount
@@ -216,21 +234,7 @@ class walletService {
 
                 console.log("Record locked for processing:", record);
 
-                if (!record) {
-                    await session.abortTransaction();
                 
-                    // check if the transaction has already been processed
-                    const existingRecord = await Record.findOne({ txRf: payload.tx_ref });
-                    if (existingRecord && existingRecord.status !== 'pending') {
-                        console.log("Transaction already processed:", existingRecord.status);
-                        return {
-                            message: "Transaction already processed",
-                            status: existingRecord.status
-                        }
-                    }
-                    throw new ApiError(404, "Record does not exist or is not pending for processing");
-                    
-                }
                 // Proceed with updating the wallet balance and record status
                 const wallet = await Wallet.findOneAndUpdate({_id: record.walletId}, 
                     { 
