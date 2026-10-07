@@ -41,7 +41,7 @@ const recordSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['pending', 'successful', 'failed', 'flagged'],
+        enum: ['pending', 'processing', 'successful', 'failed', 'flagged'],
         default: 'successful'
     },
     txRf: {
