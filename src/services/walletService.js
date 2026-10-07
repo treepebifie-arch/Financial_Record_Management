@@ -238,7 +238,7 @@ class walletService {
                 // Proceed with updating the wallet balance and record status
                 const wallet = await Wallet.findOneAndUpdate({_id: record.walletId}, 
                     { 
-                        $inc: { balance: amount }, 
+                        $inc: { balance: payload.amount }, 
                         $set: { updatedAt: new Date() }    
                     }, 
                     { new: true, session });
